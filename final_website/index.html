@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="ECE 5725 final project report for a LiDAR-guided audio beacon robot with wearable IMU person tracking.">
+  <meta name="author" content="Kaelem Bent and Nate Haris">
+  <title>LiDAR-Guided Audio Beacon with Wearable Step Tracking</title>
+  <link rel="stylesheet" href="starter-template.css">
+</head>
+<body>
+  <nav class="navbar" aria-label="Main navigation">
+    <div class="navbar-inner">
+      <a class="brand" href="#top">LiDAR Audio Beacon</a>
+      <div class="navlinks">
+        <a href="#intro">Introduction</a>
+        <a href="#objective">Objective</a>
+        <a href="#video">Video</a>
+        <a href="#design">Design</a>
+        <a href="#testing">Testing</a>
+        <a href="#results">Results</a>
+        <a href="#parts">Parts</a>
+        <a href="#code">Code</a>
+        <a href="#team">Team</a>
+      </div>
+    </div>
+  </nav>
+
+  <header class="hero" id="top">
+    <div class="hero-content">
+      <div>
+        <p class="kicker">ECE 5725 Final Project</p>
+        <h1>LiDAR-Guided Audio Beacon with Wearable Step Tracking</h1>
+        <p class="lead">A manually controlled robot maps an indoor space with LiDAR, generates a planned path, and compares that path against live wearable PDR data from a person following the robot's audio cue.</p>
+        <div class="badge-row">
+          <span class="badge">Raspberry Pi 4</span>
+          <span class="badge">Raspberry Pi Zero 2 W</span>
+          <span class="badge">ROS 2 Jazzy</span>
+          <span class="badge">SLAM Toolbox</span>
+          <span class="badge">BNO055 IMU</span>
+          <span class="badge">Wi-Fi Tracking</span>
+        </div>
+      </div>
+      <aside class="hero-card">
+        <p><strong>Submission date:</strong> May 2026</p>
+        <p><strong>Team members:</strong></p>
+        <p>Kaelem Bent, kab472</p>
+        <p>Nate Haris, nh428</p>
+        <p><strong>Final demo status:</strong> manually controlled robot, LiDAR mapping, planned path CSV export, live Pi Zero PDR overlay, and buzzer warning for path deviation.</p>
+      </aside>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="section" id="intro">
+      <p class="kicker">Motivation and Scope</p>
+      <h2>Introduction</h2>
+      <p>
+        Indoor navigation is still difficult for people with visual impairments because GPS is unreliable indoors and many existing assistive systems either require expensive infrastructure or do not provide clear path-level guidance. Our project explored a low-cost prototype that combines a mobile robot, LiDAR-based mapping, audio feedback, and wearable step tracking. The idea is that the robot can act as a moving audio beacon through a room or hallway, while the wearable estimates whether the person is following the intended route.
+      </p>
+      <p>
+        The original goal was full autonomous navigation and full person localization on top of a generated map. As the project developed, we shifted the final system toward a more reliable demonstration: the robot is manually controlled for safety and repeatability, but it still uses LiDAR and SLAM to map the environment. After mapping, we export a planned path as a CSV file. A Pi Zero 2 W worn by the user runs BNO055-based pedestrian dead reckoning and sends live coordinates over Wi-Fi to the Pi 4. The Pi 4 overlays the live person track on the planned path and activates a buzzer if the person deviates too far.
+      </p>
+      <div class="figure">
+        <img src="img/overall_system_arch.png" alt="System architecture diagram showing robot, LiDAR, Pi 4, Pi Zero wearable, Wi-Fi, plot overlay, and buzzer feedback.">
+        <p class="caption">Figure 1. Overall system architecture. The robot maps and provides the audible cue, while the wearable subsystem tracks the person's motion and sends data to the Pi 4.</p>
+      </div>
+    </section>
+
+    <section class="section" id="objective">
+      <p class="kicker">High Level Summary</p>
+      <h2>Project Objective</h2>
+      <p>
+        Our objective was to demonstrate a low-cost assistive navigation prototype that links robot-based environmental sensing with wearable human motion tracking. The final system maps a room with a LiDAR-equipped robot, exports a planned route from the mapping software, receives live PDR coordinates from a Pi Zero wearable, and plots the planned path and person path on the same coordinate system. If the person deviates too far from the planned path, the robot-mounted buzzer gives an audible warning. This final version focuses on robust integration of sensing, communication, plotting, and feedback instead of fully autonomous robot movement.
+      </p>
+      <div class="grid-3">
+        <div class="card">
+          <h3>Map</h3>
+          <p>Use the robot's LiDAR and ROS 2 mapping stack to build a 2D representation of the room.</p>
+        </div>
+        <div class="card">
+          <h3>Track</h3>
+          <p>Use a vertical BNO055 IMU on a Pi Zero wearable to estimate user steps, direction, and position.</p>
+        </div>
+        <div class="card">
+          <h3>Warn</h3>
+          <p>Compare the user's live path against the planned path and sound a buzzer if deviation exceeds a chosen threshold.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="video">
+      <p class="kicker">Demonstration</p>
+      <h2>Project Video</h2>
+      <p class="placeholder-note">This placeholder uses the required course video link. Replace it with the final class YouTube link after the instructional team uploads the final demo video.</p>
+      <div class="video-wrap">
+        <iframe src="https://www.youtube.com/embed/et91Gea6CPk" title="Project demonstration video placeholder" allowfullscreen></iframe>
+      </div>
+      <p class="caption">Video 1. Final demonstration placeholder. The final video should show manual robot mapping, path export, live PDR data reception, overlay plotting, and buzzer warning.</p>
+    </section>
+
+    <section class="section" id="design">
+      <p class="kicker">System Design</p>
+      <h2>Design and Implementation</h2>
+      <h3>Final System Workflow</h3>
+      <div class="figure">
+        <img src="img/workflow.png" alt="Workflow diagram from mapping to path export, person tracking, overlay comparison, and buzzer cue.">
+        <p class="caption">Figure 2. Final workflow used for the integrated demo.</p>
+      </div>
+      <p>
+        The final design separates the system into two cooperating computers. The Raspberry Pi 4 is mounted on the robot and handles LiDAR, ROS 2, SLAM, manual driving support, planned path export, plotting, and buzzer feedback. The Raspberry Pi Zero 2 W is worn by the user and reads the BNO055 IMU. The Pi Zero estimates steps and direction using a PDR algorithm, then exposes the current tracking state over a Wi-Fi HTTP endpoint. The Pi 4 polls that endpoint and saves a final plot showing the planned path and the person path together.
+      </p>
+      <div class="grid-2">
+        <div class="card">
+          <h3>Robot Mapping Subsystem</h3>
+          <p>The robot uses a SLAMTEC/SLLIDAR sensor and ROS 2 nodes to publish scan data, visualize the scan in RViz2, and build a 2D map using SLAM Toolbox. For the final demo, robot movement is manual/RC-controlled to make the mapping repeatable and safe.</p>
+          <ul>
+            <li>Pi 4 runs ROS 2 Jazzy.</li>
+            <li>SLLIDAR node publishes scan data.</li>
+            <li>SLAM Toolbox builds the room map.</li>
+            <li>Planned path is exported to a CSV file.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Wearable Tracking Subsystem</h3>
+          <p>The Pi Zero 2 W reads the BNO055 over I2C. The final PDR script uses the IMU quaternion, accounts for vertical body mounting with a chosen body-forward axis, detects steps using acceleration magnitude, and locks heading into cardinal directions to reduce drift.</p>
+          <ul>
+            <li>Fixed step length of 0.61 m, about 2 ft.</li>
+            <li>Cardinal directions N, E, S, W.</li>
+            <li>Wi-Fi server exposes live x, y, steps, and direction.</li>
+            <li>Final CSV and debug plots are saved after the run.</li>
+          </ul>
+        </div>
+      </div>
+
+      <h3>Path Overlay and Deviation Warning</h3>
+      <p>
+        After the planned path is exported, the Pi 4 script loads the CSV and polls the Pi Zero for live person coordinates. The live PDR points are transformed as needed with simple rotation, scale, and offset settings, then plotted with the planned path. A deviation threshold can be applied by computing the nearest distance from the person point to the planned path. If the distance is above the threshold, the robot buzzer activates to warn the user that they are no longer following the intended route.
+      </p>
+      <div class="figure">
+        <img src="img/path_overlay.png" alt="Placeholder plot showing planned path, person tracking path, and deviation alert point.">
+        <p class="caption">Figure 3. Final plot showing our robot's planned path, and the overlay for the person's path.</p>
+      </div>
+
+      <h3>Major Design Iterations</h3>
+      <ol>
+        <li><strong>Initial concept:</strong> autonomous LiDAR robot maps a room and a wearable module localizes the person directly on that map.</li>
+        <li><strong>IMU development:</strong> double integration was tested first but drifted too quickly. We then switched to step-based PDR.</li>
+        <li><strong>PDR tuning:</strong> the BNO055 was mounted vertically, so the heading calculation was rewritten to use a body-forward sensor axis instead of assuming a flat IMU.</li>
+        <li><strong>Communication:</strong> Wi-Fi HTTP communication was selected over Bluetooth because it was easier to test between the Pi Zero and Pi 4.</li>
+        <li><strong>Final integration:</strong> robot driving was made manual for reliability, while LiDAR mapping, path export, wearable tracking, Wi-Fi communication, plotting, and buzzer feedback remained integrated.</li>
+      </ol>
+    </section>
+
+    <section class="section" id="testing">
+      <p class="kicker">Validation</p>
+      <h2>Testing and Debugging</h2>
+      <div class="grid-2">
+        <div>
+          <h3>LiDAR and Mapping Tests</h3>
+          <p>We tested whether the LiDAR published scan data, whether RViz2 displayed scans and map features correctly, and whether SLAM Toolbox could build a room-scale map. We also debugged frame orientation issues between <code>laser</code> and <code>base_link</code>, including cases where the scan appeared flipped relative to the robot.</p>
+          <ul>
+            <li>Verified <code>/scan</code> publishing from SLLIDAR.</li>
+            <li>Verified ROS 2 node startup through the run script.</li>
+            <li>Added build/debug timestamp checks to avoid running stale installed files.</li>
+            <li>Used RViz2 markers to check FOV bounds, target direction, and scan alignment.</li>
+          </ul>
+        </div>
+        <div>
+          <h3>PDR and Wi-Fi Tests</h3>
+          <p>The BNO055 tracking algorithm was tested by walking short straight-line and right-angle paths while plotting acceleration, step signal, heading, and estimated XY position. Wi-Fi communication was tested by having the Pi 4 repeatedly poll the Pi Zero <code>/position</code> endpoint.</p>
+          <ul>
+            <li>Added rolling average and baseline removal to reduce false step detections.</li>
+            <li>Changed to cardinal direction locking when continuous heading was too noisy.</li>
+            <li>Mounted IMU vertically and computed heading from a selected body-forward axis.</li>
+            <li>Used HTTP JSON packets for live <code>x</code>, <code>y</code>, <code>steps_total</code>, and <code>direction</code>.</li>
+          </ul>
+        </div>
+      </div>
+      <h3>Challenges and Resolutions</h3>
+      <table>
+        <thead><tr><th>Challenge</th><th>What happened</th><th>Resolution</th></tr></thead>
+        <tbody>
+          <tr><td>Autonomous driving reliability</td><td>The robot sometimes chose unstable paths or the scan frame did not match the physical robot orientation.</td><td>For the final demo, movement was made manual/RC-controlled while preserving LiDAR mapping and data integration.</td></tr>
+          <tr><td>IMU drift</td><td>Double integration drifted badly even when the sensor was stationary.</td><td>Switched to step-based PDR with fixed step length and direction locking.</td></tr>
+          <tr><td>Heading instability</td><td>Continuous heading caused diagonal drift and direction flicker.</td><td>Quantized heading into N, E, S, W and added hysteresis before switching directions.</td></tr>
+          <tr><td>Vertical IMU mount</td><td>Plain yaw was not always the person's facing direction.</td><td>Computed heading from the sensor axis mounted forward on the body.</td></tr>
+          <tr><td>File/build confusion</td><td>ROS sometimes ran older installed files.</td><td>Added build timestamp debug and hot-reload steps to the robot launcher.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="section" id="results">
+      <p class="kicker">Evaluation</p>
+      <h2>Results</h2>
+      <p>
+        The final prototype met the core integration goals. We were able to run the robot mapping stack, export or use a planned path CSV, run PDR tracking on the Pi Zero, send live tracking data over Wi-Fi to the Pi 4, and save a combined plot of the planned path and person path. The buzzer feedback mechanism provides a simple way to alert the person if their tracked path deviates too far from the intended route.
+      </p>
+      <ul class="status-list">
+        <li><strong>Completed:</strong> LiDAR mapping pipeline on the robot.</li>
+        <li><strong>Completed:</strong> manual/RC robot movement for reliable mapping and demonstration.</li>
+        <li><strong>Completed:</strong> BNO055-based PDR script with vertical mount support and cardinal heading locking.</li>
+        <li><strong>Completed:</strong> Wi-Fi data connection between Pi Zero wearable and Pi 4 plotting script.</li>
+        <li><strong>Completed:</strong> planned path and live person path overlay plot saved as an image.</li>
+        <li><strong>Partially completed:</strong> autonomous robot pathfinding. The robot can calculate and visualize path information, but final movement was manually controlled for reliability.</li>
+      </ul>
+      <div class="figure">
+        <img src="img/photo_placeholder.svg" alt="Placeholder for final demo screenshot or generated plot.">
+        <p class="caption">Figure 4. Replace with final generated plot, RViz2 map screenshot, or demo photo.</p>
+      </div>
+    </section>
+
+    <section class="section" id="conclusions">
+      <p class="kicker">Takeaways</p>
+      <h2>Conclusions</h2>
+      <p>
+        The strongest part of the project was the integration across several subsystems. The robot side and person side communicate over Wi-Fi, and the final plot connects the path planned from mapping with the person's live motion estimate. The PDR subsystem also improved significantly over the project. Moving from double integration to step detection made the tracking much more usable, and the cardinal direction lock made the final path easier to interpret.
+      </p>
+      <p>
+        The main limitation is that the final robot movement is not fully autonomous. The LiDAR and ROS stack were useful for mapping, but stable autonomous driving required more tuning than the project timeline allowed. Another limitation is that PDR still accumulates error over time. The final system is therefore best viewed as a proof-of-concept for assistive guidance and monitoring rather than a finished navigation product.
+      </p>
+    </section>
+
+    <section class="section" id="future">
+      <p class="kicker">Next Steps</p>
+      <h2>Future Work</h2>
+      <ul>
+        <li><strong>Autonomous navigation:</strong> improve gap selection, obstacle inflation, and motor calibration so the robot can follow the planned path without manual control.</li>
+        <li><strong>Better coordinate alignment:</strong> add a calibration step to align the Pi Zero PDR coordinate frame to the SLAM map frame.</li>
+        <li><strong>Drift correction:</strong> periodically correct the wearable PDR estimate using map constraints, visual landmarks, UWB, BLE beacons, or known checkpoints.</li>
+        <li><strong>Real-time web dashboard:</strong> replace the saved image workflow with a live browser dashboard showing map, planned path, and person path.</li>
+        <li><strong>User feedback:</strong> test different buzzer patterns for warning, confirmation, and directional guidance.</li>
+        <li><strong>Safety design:</strong> add a physical emergency stop and more conservative obstacle thresholds before testing with users.</li>
+      </ul>
+    </section>
+
+    <section class="section" id="supporting-media">
+      <p class="kicker">Figures and Media</p>
+      <h2>Figures, Drawings, and Supporting Media</h2>
+      <div class="grid-2">
+        <div class="figure">
+          <img src="img/photo_placeholder.svg" alt="Placeholder for robot hardware photo.">
+          <p class="caption">Figure 5. Insert photo of the robot showing the LiDAR, Pi 4, chassis, buzzer, and power setup.</p>
+        </div>
+        <div class="figure">
+          <img src="img/photo_placeholder.svg" alt="Placeholder for wearable hardware photo.">
+          <p class="caption">Figure 6. Insert photo of the Pi Zero wearable and BNO055 vertical mounting orientation.</p>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="figure">
+          <img src="img/photo_placeholder.svg" alt="Placeholder for RViz map screenshot.">
+          <p class="caption">Figure 7. Insert RViz2 screenshot showing LiDAR scan, generated map, or path markers.</p>
+        </div>
+        <div class="figure">
+          <img src="img/photo_placeholder.svg" alt="Placeholder for final team photo.">
+          <p class="caption">Figure 8. Insert final team photo.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="parts">
+      <p class="kicker">Bill of Materials</p>
+      <h2>Parts List</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Part</th><th>Quantity</th><th>Approx. unit cost</th><th>Approx. total</th><th>Role</th></tr></thead>
+          <tbody>
+            <tr><td>Raspberry Pi Zero 2 W</td><td>1</td><td>$15</td><td>$15</td><td>Wearable PDR tracking and Wi-Fi server</td></tr>
+            <tr><td>BNO055 IMU breakout</td><td>1</td><td>$35</td><td>$35</td><td>Wearable orientation and acceleration sensing</td></tr>
+            <tr><td>SLAMTEC/SLLIDAR sensor</td><td>1</td><td>$100</td><td>$60</td><td>2D room mapping and obstacle sensing</td></tr>
+            <tr><td>Piezo buzzer</td><td>1</td><td>$2</td><td>$2</td><td>Audible warning or follow cue</td></tr>
+            <tr class="total-row"><td colspan="3">Estimated Total</td><td>$112</td><td>Actual cost depends on parts already available in lab.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="caption">Costs are approximate and should be updated with the actual purchase/lab inventory values before submission.</p>
+    </section>
+
+    <section class="section" id="references">
+      <p class="kicker">Sources</p>
+      <h2>References</h2>
+      <ol>
+        <li><a href="https://docs.ros.org/en/jazzy/index.html">ROS 2 Jazzy documentation</a>.</li>
+        <li><a href="https://docs.ros.org/en/jazzy/Tutorials/Beginner-CLI-Tools/Understanding-ROS2-Nodes/Understanding-ROS2-Nodes.html">ROS 2 nodes and topics tutorial</a>.</li>
+        <li><a href="https://github.com/SteveMacenski/slam_toolbox">SLAM Toolbox GitHub repository</a>.</li>
+        <li><a href="https://github.com/Slamtec/sllidar_ros2">SLAMTEC SLLIDAR ROS 2 package</a>.</li>
+        <li><a href="https://learn.adafruit.com/adafruit-bno055-absolute-orientation-sensor/overview">Adafruit BNO055 Absolute Orientation Sensor Guide</a>.</li>
+        <li><a href="https://matplotlib.org/">Matplotlib documentation</a>.</li>
+        <li><a href="https://www.raspberrypi.com/documentation/">Raspberry Pi documentation</a>.</li>
+        <li>ECE 5725 course materials, labs, and final project report guidelines.</li>
+        <li>OpenAI ChatGPT, GPT-5.5 Thinking, used for debugging support, explanation drafts, and code organization assistance. Final design decisions and testing were completed by the project team.</li>
+      </ol>
+    </section>
+
+    <section class="section" id="code">
+      <p class="kicker">Appendix</p>
+      <h2>Code Appendix</h2>
+      <p class="placeholder-note">Place the final source files in the <code>code/</code> folder before submission. The table below lists the intended code files and their purpose. Add direct code listings or repository links if required by the course staff.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>File</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr><td><a href="code/run_robot.py">run_robot.py</a></td><td>Starts ROS 2, LiDAR, SLAM, motor interface, and robot control processes. Includes manual mode and build/debug helpers.</td></tr>
+            <tr><td><a href="code/reactive_nav.py">reactive_nav.py</a></td><td>Reactive navigation and RViz2 marker publishing. Include final version if autonomous/visual path logic is used.</td></tr>
+            <tr><td><a href="code/motor_interface.py">motor_interface.py</a></td><td>Receives <code>/cmd_vel</code> and drives the motor driver pins.</td></tr>
+            <tr><td><a href="code/pi_zero_pdr_wifi.py">pi_zero_pdr_wifi.py</a></td><td>Runs BNO055 PDR tracking and serves live coordinates over Wi-Fi to the Pi 4.</td></tr>
+            <tr><td><a href="code/pi4_plot_person_tracking.py">pi4_plot_person_tracking.py</a></td><td>Loads planned path CSV, polls the Pi Zero, overlays person tracking, and saves final plot.</td></tr>
+            <tr><td><a href="code/buzzer_test_gpio4.py">buzzer_test_gpio4.py</a></td><td>Tests robot-mounted buzzer on GPIO 4.</td></tr>
+            <tr><td><a href="code/robot_debug.py">robot_debug.py</a></td><td>Displays live debugging information for LiDAR, velocity commands, and motor PWM estimates.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <h3>Representative Code Snippet</h3>
+      <pre><code># Pi Zero live tracking packet served to the Pi 4
+live_state = {
+    "x": round(float(x), 4),
+    "y": round(float(y), 4),
+    "steps_total": int(steps_total),
+    "direction": str(accepted_heading_dir),
+    "moving": bool(moving),
+    "t": round(float(elapsed), 3),
+}
+
+# Pi 4 receives this packet and plots it against planned_path.csv
+# If nearest distance to the planned path is above the threshold,
+# the robot-mounted buzzer is activated.</code></pre>
+    </section>
+
+    <section class="section" id="team">
+      <p class="kicker">Work Distribution</p>
+      <h2>Team Contributions</h2>
+      <div class="grid-2">
+        <div class="card">
+          <h3>Kaelem Bent, kab472</h3>
+          <p>Led the wearable tracking and communication subsystem. Developed and tuned the BNO055 PDR algorithm, tested double integration and step detection approaches, added cardinal direction locking, configured Pi Zero Wi-Fi communication, and worked on integration with the final plotting and buzzer feedback workflow.</p>
+        </div>
+        <div class="card">
+          <h3>Nate Haris, nh428</h3>
+          <p>Led the LiDAR and mapping subsystem. Configured the LiDAR on the Raspberry Pi 4, worked with ROS 2, RViz2, scan matching, and SLAM Toolbox, debugged mapping performance and scan visualization, and supported robot-side integration with the planned path workflow.</p>
+        </div>
+      </div>
+      <div class="figure">
+        <img src="img/photo_placeholder.svg" alt="Placeholder for team photo.">
+        <p class="caption">Figure 9. Insert team photo here.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <p>ECE 5725 Final Project Report - LiDAR-Guided Audio Beacon with Wearable Step Tracking</p>
+  </footer>
+</body>
+</html>
