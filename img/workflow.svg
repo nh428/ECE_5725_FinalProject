@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="360" viewBox="0 0 1100 360" role="img" aria-labelledby="title desc">
+<title id="title">Project Workflow Diagram</title>
+<desc id="desc">Workflow from manual LiDAR mapping to planned path CSV, Pi Zero tracking, overlay plotting, and buzzer alert.</desc>
+<style>.step{fill:#ffffff;stroke:#2563eb;stroke-width:3;rx:14;ry:14}.text{font-family:Arial,sans-serif;font-size:18px;fill:#0f172a}.head{font-family:Arial,sans-serif;font-size:22px;font-weight:700;fill:#0f172a}.arrow{stroke:#475569;stroke-width:4;marker-end:url(#arrow)}</style>
+<defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#475569"/></marker></defs>
+<rect x="30" y="95" width="180" height="130" class="step"/><text x="60" y="140" class="head">1. Map</text><text x="55" y="175" class="text">Drive robot</text><text x="55" y="200" class="text">with RC/manual</text>
+<rect x="260" y="95" width="180" height="130" class="step"/><text x="290" y="140" class="head">2. Plan</text><text x="285" y="175" class="text">SLAM path</text><text x="285" y="200" class="text">exported as CSV</text>
+<rect x="490" y="95" width="180" height="130" class="step"/><text x="520" y="140" class="head">3. Track</text><text x="515" y="175" class="text">Pi Zero PDR</text><text x="515" y="200" class="text">sends x,y</text>
+<rect x="720" y="95" width="180" height="130" class="step"/><text x="750" y="140" class="head">4. Compare</text><text x="745" y="175" class="text">Overlay live</text><text x="745" y="200" class="text">points on path</text>
+<rect x="950" y="95" width="120" height="130" class="step"/><text x="978" y="140" class="head">5. Cue</text><text x="970" y="175" class="text">Buzzer</text><text x="970" y="200" class="text">alert</text>
+<line x1="210" y1="160" x2="260" y2="160" class="arrow"/><line x1="440" y1="160" x2="490" y2="160" class="arrow"/><line x1="670" y1="160" x2="720" y2="160" class="arrow"/><line x1="900" y1="160" x2="950" y2="160" class="arrow"/>
+<text x="250" y="290" class="text">Final demonstration focus: reliable integration of mapping, path export, wearable tracking, Wi-Fi, plotting, and feedback.</text>
+</svg>
